@@ -713,7 +713,7 @@ public:
                                  const lemur::api::DocIDSet &relDocs, const lemur::api::DocIDSet &nonRelDocs);
 
     virtual void updateProfile(lemur::api::TextQueryRep &origRep,
-                               vector<int> relJudglDoc ,vector<int> nonReljudgDoc);
+                               vector<int> relJudglDoc , vector<int> nonReljudgDoc, Index *currInd, Index *otherInd, vector<int>relJudgDocFr, bool isFr, RetMethod *otherMethod);
     virtual void updateThreshold(lemur::api::TextQueryRep &origRep,
                                  vector<int> relJudglDoc , vector<int> nonReljudgDoc , int mode);
     virtual float computeProfDocSim(lemur::api::TextQueryRep *origRep, int docID , vector<int>relDocs , vector<int>nonRelDocs , bool isFr);
@@ -925,6 +925,11 @@ public:
 
     bool isCollComputed;
     vector<pair<int,double> > collNearestTerm;
+    void computeMixtureDistQuery(vector<int> relDocs, double coef , double *distQuery);
+    void computeRM3DistQuery(vector<int> relDocs, double coef , double *distQuery );
+    void computeLogisticDistQuery(vector<int> relDocs, double coef , double *distQuery);
+    void computeWELogisticDistQuery(vector<int> relDocs, double coef , double *distQuery,bool isFr);
+
 protected:
     //double *prev_distQuery;
     map <int,double>prev_distQuery;
@@ -955,6 +960,8 @@ protected:
 
     /// @name query model updating methods (i.e., feedback methods)
     //@{
+
+
     /// Mixture model feedback method
     void computeMixtureFBModel(QueryModel &origRep,
                                const lemur::api::DocIDSet & relDocs, const lemur::api::DocIDSet &nonRelDocs);
