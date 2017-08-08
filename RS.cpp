@@ -665,7 +665,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                         double AVGR = avgRecallAll;//totalRelRec / totalRel;//(avgRecall+avgRecallFr)/2.0;
                                         out<<"Avg Precision: "<<AVGP<<"\t"<<avgPrec<<"\t"<<avgPrecFr<<endl;
                                         out<<"Avg Recall: "<<AVGR<<"\t"<<avgRecall<<"\t"<<avgRecallFr<<endl;
-                                        out<<"F-measure: "<<(2*AVGP*AVGR)/(AVGP+AVGR)<<"\t"<<(2*avgPrec*avgRecall)/(avgPrec+avgRecall)<<"\t"<<(2*avgPrecFr*avgRecallFr)/(avgPrecFr+avgRecallFr) <<endl;
+                                        out<<"F-measure: "<<(2*AVGP*AVGR)/(AVGP+AVGR)<<"\t"<<(2*avgPrec*avgRecall)/(avgPrec+avgRecall)<<"\t"<<(2*avgPrecFr*avgRecallFr)/(avgPrecFr+avgRecallFr) <<endl<<endl;
 
 
 
