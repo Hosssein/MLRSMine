@@ -740,13 +740,15 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
 #define BL 0
     /**mine methods****/
 
-#define TRANS 1
+#define TRANS 0
 #define MIX_TRANS 0 //0->logistic ,1 -> mixture
 #define RM3_TRANS 0
 #define LOGISTIC_TRANS 0
-#define LOGISTIC_WE_TRANS 1
+#define LOGISTIC_WE_TRANS 0
 
+    //sameLang
 #define LOGLOGISTIC 0
+#define LOGLOGISTICWE 1
 #define COSREL 0
     /**other methods***/
 #define CENTROID 0
@@ -1296,9 +1298,195 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
     //delete qr;
 #endif
 
+#if LOGLOGISTICWE
+    vector<pair<double, int> >finalScoreIdVec;
+    const double avgl = ind.docLengthAvg();
+    const double N = ind.docCount();
+
+    int numTerms = ind.termCountUnique();
+    double *wDist = new double[numTerms+1];
+    double *distQuery = new double[numTerms+1];
+    for(int i=0; i<= numTerms;i++)
+    {
+        wDist[i]=0.0;
+        distQuery[i] = 0.0;
+    }
+
+    vector<pair<int ,vector<double> > > queryTerms;
+    map<int,vector<double> >WE;
+
+    if(!isFr)
+    {
+        WE = wordEmbedding;
+        queryTerms.assign(queryTermsIdVec.begin(),queryTermsIdVec.end());
+    }
+    else
+    {
+        WE = wordEmbeddingFr;
+        queryTerms.assign(queryTermsIdVecFr.begin(),queryTermsIdVecFr.end());
+    }
+
+
+    //cerr<<"\n\nbegin WELogistic. qVec: "<<queryTermsIdVec.size()<<" Fr: "<<queryTermsIdVecFr.size();
+    //cerr<<" qsize: "<<queryTerms.size()<<" relsize: "<<relJudgDoc.size()<<" isFr: "<<isFr<<endl;
+    //cerr<<"docid: "<<relJudgDoc[0]<<" "<<ind.document(relJudgDoc[0])<<endl;
+    //cerr<<ind.termCount()<<" "<<ind.termCountUnique()<<endl;
+    //cerr<<"WE size: "<<WE.size()<<endl;
+
+    map<int, vector<double> >::const_iterator endIt = WE.end();
+    //ofstream write ("Logistic_expanded_terms.txt", fstream::app);
+    for(int ii = 0 ; ii < queryTerms.size() ; ii++)//qi
+    {
+        double totalScore = 0.0 ;
+        finalScoreIdVec.clear();
+
+        for(int i = 0 ; i < relJudgDoc.size() ; i++)
+        {
+            lemur::langmod::DocUnigramCounter *myDocCounter;
+            myDocCounter = new lemur::langmod::DocUnigramCounter(relJudgDoc[i], ind);
+
+            //cerr<<"\n"<<ind.document(relJudgDoc[i])<<endl;
+
+            myDocCounter->startIteration();
+            while(myDocCounter->hasMore())
+            {
+                int eventInd;
+                double weight;
+                myDocCounter->nextCount(eventInd,weight);
+
+                map<int, vector<double> >::iterator tempit = WE.find(eventInd);
+                if( tempit != endIt )//found!
+                {
+                    vector<double> tt = tempit->second;
+                    double sc = cosineSim(queryTerms[ii].second , tt);
+
+                    double TF = weight;
+                    double docLength = ind.docLength( relJudgDoc[i] );
+                    double DF = ind.docCount(eventInd);//df
+
+                    double lambda_w = DF/N;
+                    double tf_w = TF * log(1 + ((avgl)/docLength) ) ;
+                    double score_ = log(( tf_w + lambda_w )/lambda_w );
+
+
+                    score_ *= exp(sc); //CHECK IT!!! (+1 removed)// [-1:1]->[0:2]
+                    //score_ *=1/1+exp(-10.0*sc);
+                    //score_ *= sc;
+                    totalScore += score_;
+
+                    wDist[eventInd] += score_;
+
+                }
+            }
+
+            delete myDocCounter;
+        }//end-for-reljudg
+
+
+        //double impOfQTerm = 1.0;
+
+        for(int i=1 ; i<=ind.termCountUnique(); i++)
+        {
+            if(wDist[i] != 0)
+            {
+                double score_ = (wDist[i] /** impOfQTerm*/ )/totalScore;
+                //cerr<<score_<<" ";
+                finalScoreIdVec.push_back( make_pair<double,int>( score_, i) );
+                wDist[i]=0.0;
+            }
+        }
+        //cerr<<endl;
+
+        std::sort(finalScoreIdVec.begin() , finalScoreIdVec.end() , pairCompare);// can use top n selecting algorithm O(n)
+
+        int cc=-1;
+        if( tops4EachQueryTerm < finalScoreIdVec.size())
+            cc = tops4EachQueryTerm;
+        else
+            cc = finalScoreIdVec.size();
+
+        for(int i = 0 ; i < cc ; i++)
+            distQuery[finalScoreIdVec[i].second] += finalScoreIdVec[i].first;
+
+    }//end-for-query
+
+    lemur::utility::ArrayCounter<double> lmCounter(numTerms+1);
+    for (int i=1; i<=numTerms; i++) {
+        if (distQuery[i] > 0) {
+            lmCounter.incCount(i, distQuery[i]);
+        }
+    }
+
+    QueryModel *qr = dynamic_cast<QueryModel *> (&origRep);
+    lemur::langmod::MLUnigramLM *fblm = new lemur::langmod::MLUnigramLM(lmCounter, ind.termLexiconID());
+    qr->interpolateWith(*fblm, (1-qryParam.fbCoeff), qryParam.fbTermCount, qryParam.fbPrSumTh, qryParam.fbPrTh);
+
+    delete fblm;
+    delete []wDist;
+    delete []distQuery;
+
+#endif
 
 #if LOGLOGISTIC
 
+    //log-logistic
+    int numTerms = ind.termCountUnique();
+    double *distQuery = new double[numTerms+1];
+
+    const double avgl = ind.docLengthAvg();
+    const double N = ind.docCount();
+
+    double totalScore = 0.0 ;
+
+    for(int i = 0 ; i < relJudgDoc.size() ; i++)
+    {
+        lemur::langmod::DocUnigramCounter *myDocCounter;
+        myDocCounter = new lemur::langmod::DocUnigramCounter(relJudgDoc[i], ind);
+
+        myDocCounter->startIteration();
+        while(myDocCounter->hasMore())
+        {
+            int eventInd;
+            double weight;
+            myDocCounter->nextCount(eventInd,weight);
+
+
+            double TF = weight;
+            double docLength = ind.docLength( relJudgDoc[i] );
+            double DF = ind.docCount(eventInd);//df
+
+            double lambda_w = DF/N;
+            double tf_w = TF * log(1 + ((avgl)/docLength) ) ;
+            double score_ = log(( tf_w + lambda_w )/lambda_w );
+
+            totalScore += score_;
+            distQuery[eventInd] += score_;
+        }
+
+        delete myDocCounter;
+    }//end-for-reljudg
+
+
+    lemur::utility::ArrayCounter<double> lmCounter(numTerms+1);
+    for (int i=1; i<=numTerms; i++) {
+        if (distQuery[i] > 0) {
+            lmCounter.incCount(i, distQuery[i]/totalScore);
+        }
+    }
+
+    QueryModel *qr = dynamic_cast<QueryModel *> (&origRep);
+    lemur::langmod::MLUnigramLM *fblm = new lemur::langmod::MLUnigramLM(lmCounter, ind.termLexiconID());
+    qr->interpolateWith(*fblm, (1-qryParam.fbCoeff), qryParam.fbTermCount, qryParam.fbPrSumTh, qryParam.fbPrTh);
+
+    //lemur::langmod::MLUnigramLM *fblm = new lemur::langmod::MLUnigramLM(lmCounter, ind.termLexiconID());
+    //origRep.interpolateWith(*fblm, (1-qryParam.fbCoeff), qryParam.fbTermCount,
+    //                        qryParam.fbPrSumTh, qryParam.fbPrTh);
+
+    delete fblm;
+    delete[] distQuery;
+
+
+#if 0
     //log-logistic
     vector<pair<double, int> >finalScoreIdVec;
 
@@ -1383,8 +1571,8 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
         std::sort(finalScoreIdVec.begin() , finalScoreIdVec.end() , pairCompare);// can use top n selecting algorithm O(n)
 
         int cc=-1;
-        if( tops4EachQuery < finalScoreIdVec.size())// NOTICE!!
-            cc = tops4EachQuery;
+        if( tops4EachQueryTerm < finalScoreIdVec.size())// NOTICE!!
+            cc = tops4EachQueryTerm;
         else
             cc = finalScoreIdVec.size();
 
@@ -1431,7 +1619,6 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
 #endif
 
 
-
     QueryModel *qr = dynamic_cast<QueryModel *> (&origRep);
     lemur::langmod::MLUnigramLM *fblm = new lemur::langmod::MLUnigramLM(lmCounter, ind.termLexiconID());
     qr->interpolateWith(*fblm, (1-qryParam.fbCoeff), countPos/*qryParam.fbTermCount*/, qryParam.fbPrSumTh, qryParam.fbPrTh);
@@ -1440,6 +1627,8 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
     delete fblm;
     //delete qr;
     //sleep(5000);
+
+#endif
 
 #endif
 
@@ -1807,13 +1996,250 @@ vector<double> lemur::retrieval::RetMethod::extractKeyWord(int newDocId)
 extern map <string,vector<pair<string, double> > >dictionary;
 
 float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *textQR, int docID ,
-                                                     vector<int> relJudgDoc , vector<int> nonReljudgDoc , bool isFr)
+                                                     vector<int> relJudgDoc , vector<int> nonReljudgDoc , bool isFr, Index *indFr, bool newNonRel)
 {
-#if 1
+#define KL 0
+#define FANG_NEG 1
+#define RAHIMI 0
+#if KL
     double sc = scoreDoc(*textQR ,docID);
     //cerr<<sc<<" ";
     return sc;
 #endif
+
+#if FANG_NEG
+
+    //IndexedRealVector nonRel,rel;
+    //for (int i =0 ; i<nonReljudgDoc.size() ; i++)
+    //    nonRel.PushValue(nonReljudgDoc[i],0);
+    //PseudoFBDocs  *nonRelDocs;
+    //nonRelDocs= new PseudoFBDocs(nonRel,nonRel.size(),true);
+
+    //for(int i =0 ; i< relJudgDoc.size();i++)
+    //    rel.PushValue(relJudgDoc[i],0);
+    //PseudoFBDocs  *relDocs;
+    //relDocs= new PseudoFBDocs(rel,rel.size(),true);
+
+    const QueryModel *qm = dynamic_cast<const QueryModel *>(textQR);
+
+
+    DocumentRep *dRep;
+    dRep = computeDocRep(docID);
+
+
+    double negQueryGenerationScore=0.0;
+    //cout<<"negative score:"<<endl;
+    if(RSMethodHM == 1)//RecSys(neg,coll)
+    {
+        bool newRel = false;//fix me!!!!!!!!!!!!!
+        negQueryGenerationScore= qm->negativeQueryGeneration(dRep ,nonReljudgDoc ,relJudgDoc,negGenModeHM, newNonRel,newRel,NegMu,delta,lambda_1,lambda_2);
+    }
+    else if (RSMethodHM == 4)//fang
+    {
+        IndexedRealVector nonRel;
+        for (int i =0 ; i<nonReljudgDoc.size() ; i++)
+            nonRel.PushValue(nonReljudgDoc[i],0);
+
+        PseudoFBDocs  *nonRelDocs;
+        nonRelDocs= new PseudoFBDocs(nonRel,nonRel.size(),true);
+
+        negQueryGenerationScore = fangScore(*nonRelDocs,docID,newNonRel);
+
+        delete nonRelDocs;
+    }
+    else if (RSMethodHM == 2 || RSMethodHM == 3)//RecSys negKLQTE(2) and negKL(3)
+    {
+        negQueryGenerationScore = qm->negativeKL(dRep ,nonReljudgDoc , newNonRel,NegMu);
+    }
+
+    //double fangScoreTmp = fangScore(*relDocs,docID,newRel);//considering positive feedback
+    //negQueryGenerationScore -= fangScore(*relDocs,docID,newRel);//considering positive feedback
+
+    double scoreDoc = lemur::api::TextQueryRetMethod::scoreDoc(*textQR,docID); // -KL(q,d)
+
+    //negQueryGenerationScore -= fangScoreTmp;
+
+
+    delete dRep;
+    //delete relDocs;
+
+    //return (negQueryGenerationScore + adjustedScore);
+    //cerr<<scoreDoc <<" "<<negQueryGenerationScore<<"\n";
+
+    return (0.1*negQueryGenerationScore + scoreDoc);
+
+
+#endif
+#if RAHIMI//rahimi
+    double mu = 1000;//default//ind.docLengthAvg();
+
+    double queryWeight = 0.0;
+    textQR->startIteration();
+    while (textQR->hasMore())
+    {
+        QueryTerm *qTerm = textQR->nextTerm();
+        if(qTerm->id()==0)
+        {
+            cerr<<"**********"<<endl;
+            //break;
+            continue;
+        }
+        queryWeight += qTerm->weight();
+
+        delete qTerm;
+    }
+
+    if(!isFr)//en doc
+    {
+        //p_ml
+        HashFreqVector hfv(ind,docID);
+
+        double score = 0;
+        double docLen = ind.docLength(docID);
+
+
+        textQR->startIteration();
+        while (textQR->hasMore())
+        {
+            double pml = 0, pcol = 0 ,psmo = 0, pq=0;
+
+            QueryTerm *qTerm = textQR->nextTerm();
+            if(qTerm->id()==0)
+            {
+                cerr<<"**********"<<endl;
+                //break;
+                continue;
+            }
+            pq = qTerm->weight()/queryWeight;
+
+            int tf=0;
+            hfv.find( qTerm->id() ,tf);
+            pml =(double)tf /(2*ind.docLength(docID));
+
+            pcol = (double)ind.termCount(qTerm->id()) /(double)(2*ind.termCount());
+
+            psmo = (2*docLen/(2*docLen+ mu ))*pml + (mu/(mu+2*docLen))*pcol;
+            score += pq*log(psmo);
+            score -= pq*log(pq);
+
+            delete qTerm;
+        }
+        //cerr<<"en: "<<score<<" ";
+        return score;
+    }else //fr doc
+    {
+        //p_ml
+        map <string,vector<pair<string, double> > >::iterator fit;
+        HashFreqVector hfv(*indFr,docID);
+
+        double score = 0;
+
+        double docLen = indFr->docLength(docID);
+
+
+        textQR->startIteration();
+        while (textQR->hasMore())
+        {
+            double pml = 0, pcol = 0 ,psmo = 0, pq = 0;
+
+            QueryTerm *qTerm = textQR->nextTerm();
+            if(qTerm->id()==0)
+            {
+                cerr<<"**********"<<endl;
+                //break;
+                continue;
+            }
+            //cerr<<ind.term(qTerm->id())<<" "<<qTerm->weight()<<endl;
+            pq = qTerm->weight()/queryWeight;
+
+            //inv->en2fr
+            fit = invDictionaryEn2Fr.find(ind.term(qTerm->id()));
+            if(fit != invDictionaryEn2Fr.end())//found
+            {
+                double cp = 0;
+                for(int i = 0; i < fit->second.size(); i++)
+                {
+                    int tf=0;
+                    hfv.find( indFr->term(fit->second[i].first) ,tf);
+                    if(tf)
+                    {
+                        cp += tf*fit->second[i].second;
+                        //cerr<<"cp: "<<cp<<" "<<tf<<" "<<fit->second[i].second;
+                    }
+                }
+
+                pml = cp /(2*indFr->docLength(docID));
+            }
+            else
+            {
+                //cerr<< ind.term(qTerm->id())<<"#";
+                double cp = 0;
+                int tf=0;
+                hfv.find( indFr->term( ind.term(qTerm->id() ) ) ,tf);
+                if( tf > 0 )
+                {
+                    cp = tf*1.0;
+                    //cerr<<"tf>0 "<<tf<<" "<<ind.term(qTerm->id() )<<" "<<indFr->term( ind.term(qTerm->id() ) );
+                }
+                //else
+                //    cerr<<tf<<"tf ";
+
+                pml = cp /(2*indFr->docLength(docID));
+            }
+
+            //pcol = (double)indFr->termCount(qTerm->id()) /(double)(2*indFr->termCount());
+            double cntEn = ind.termCount(qTerm->id());
+
+            double cntFr = 0;
+            if(fit != invDictionaryEn2Fr.end())//found
+            {
+                for(int i = 0 ; i < fit->second.size() ; i++)
+                {
+                    cntFr += indFr->termCount( indFr->term(fit->second[i].first) ) * fit->second[i].second ;
+
+                    /*DocInfoList *dList = indFr->docInfoList(indFr->term(fit->second[i].first));
+                    dList->startIteration();
+                    while (dList->hasMore())
+                    {
+                        DocInfo *info = dList->nextEntry();
+                        DOCID_T id = info->docID();
+
+                        HashFreqVector hashh(*indFr, id);//innnn
+                        int tf = 0;
+                        hashh.find(indFr->term(fit->second[i].first) , tf);
+
+                        cntFr += (tf * fit->second[i].second);
+
+                        //delete info;
+                    }
+                    delete dList;*/
+                }
+            }
+            else
+            {
+                cntFr = indFr->termCount(indFr->term( ind.term(qTerm->id() ) ) ) * 1.0 ;
+                //cerr<<cntFr<<" "<<indFr->term(qTerm->id())<<" ";
+            }
+
+            pcol = (cntEn + cntFr)/((double)2*ind.termCount());
+
+            //
+            psmo = (2*docLen/(2*docLen+ mu ))*pml + (mu/(mu+2*docLen))*pcol;
+            score += pq*log(psmo);
+
+            score -= pq*log(pq);
+            delete qTerm;
+        }
+
+        //cerr<<"fr: "<<score<<" ";
+        return score;
+
+    }
+
+#endif
+
+
+
 #if 0
     if(!isFr)//eng
     {

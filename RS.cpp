@@ -66,6 +66,7 @@ void readDocIdKeyWords();
 void initJudgDocsVector(Index* ind,vector<int>&rel , vector<int>&nonRel,string queryID);
 void readStopWord(Index *ind);
 
+
 extern double startThresholdHM , endThresholdHM , intervalThresholdHM ;
 extern int WHO;// 0--> server , 1-->Mozhdeh, 2-->AP, other-->Hossein
 extern string outputFileNameHM;
@@ -116,11 +117,15 @@ int main(int argc, char * argv[])
         if(DATASET == 0)//infile
         {
             judgmentPath = "/home/iis/Desktop/Edu/thesis/Data/INFILE/qrels_en";
+            judgmentPathFr ="/home/iis/Desktop/Edu/thesis/Data/INFILE/qrels_fr";
 
             //indexPath= "/home/iis/Desktop/Edu/thesis/index/infile/en_notStemmed_withoutSW/index.key";
             //queryPath = "/home/iis/Desktop/Edu/thesis/Data/INFILE/q_en_titleKeyword_notStemmed_en.xml";
-            indexPath ="/home/iis/Desktop/Edu/thesis/index/infile/en_Stemmed_withoutSW/index.key";
-            queryPath = "/home/iis/Desktop/Edu/thesis/Data/INFILE/q_en_titleKeyword_en.stemmed.xml";
+            indexPath ="/home/iis/Desktop/Edu/thesis/index/infile/new_en_notStemmed_withoutSW/index.key";
+            indexPathFr="/home/iis/Desktop/Edu/thesis/index/infile/new_fr_notStemmed_withoutSW/index.key";
+
+            queryPath = "/home/iis/Desktop/Edu/thesis/Data/INFILE/q_en_titleKeyword_notStemmed_en.xml";
+            queryPathFr="/home/iis/Desktop/Edu/thesis/Data/INFILE/q_fr_titleKeyword_notStemmed.xml";
 
 
         }
@@ -205,10 +210,13 @@ void computeRSMethods(Index* ind, Index* indFr)
     else if (DATASET == 1)
         outFilename = outputFileNameHM+"_ohsu_";
 
-#define COMPAVG 1
+#define COMPAVG 0
+
+#define RAHIMI  0
+#define FANG_NEG 1
 
     isRellNearest = false;//compute nearest from rell//used in comb..
-    string methodName = "_Logistic_WE_alpha:0.1"; //RM1(c=n=100)
+    string methodName = "_NegColl_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
     //string methodName = "noprof";//"logistic_we_tp15_exp_a:0.5_b:0.5_";
     outFilename += methodName;
     //outFilename += "_lambda{zoj}_topPos:{10-50(20)}";//_#perQuery:{10-25(15)}";//#perQuery:{10-25(15)}//_alpha[0.1-1(0.4)]//#fb{50}_//#perQuery:{10-25(15)}////_//#topPerQueryWord:{(50,100)}////c(50,100)_//// #topPosW:30-30(0)
@@ -226,21 +234,22 @@ void computeRSMethods(Index* ind, Index* indFr)
     for (double thresh = start_thresh ; thresh<=end_thresh ; thresh += intervalThresholdHM)
         //for(double fbCoef = 0.1; fbCoef <=0.91 ; fbCoef+=0.2)//lambda //5
         {
-            double fbCoef =0.1;//alpha
+            double fbCoef =0.2;//alpha
 
-            for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.1)
-                for( double topPos = 5; topPos <= 15 ; topPos += 10 )//2//15 khube //n(50,100) for each query term//c in RM1
+            //for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.1)
+                //for( double topPos = 15; topPos <= 15 ; topPos += 10 )//1//15 khube //n(50,100) for each query term//c in RM1
                 {
 
                     for(double SelectedWord4Q = 10; SelectedWord4Q <= 30 ; SelectedWord4Q += 10)//3 //v(10,25) for each query(whole)
                     {
+                        double bb =-1;
                         //tedad feedback tuye har 2 yeksane
-                        //double topPos = 15;//eachqueryTerm//n//c in rm1
+                        double topPos = 15;//eachqueryTerm//n//c in rm1
                         //double SelectedWord4Q = 50;//fbTermCount
                         alphaTrans = fbCoef;
                         betaTrans = bb;
 
-                        for(double c1 = 0.1 ; c1< 0.21 ;c1 += 0.05)//inc//3
+                        for(double c1 = 0.1 ; c1< 0.17 ;c1 += 0.05)//inc//2
                             //for(double c1Fr = 0.1 ; c1Fr< 0.21 ;c1Fr += 0.1)//inc//3
                             //double c1 = 0.1, c1Fr = 0.1;
                         {
@@ -248,7 +257,7 @@ void computeRSMethods(Index* ind, Index* indFr)
 
                             myMethod->setC1(c1);
                             myMethodFr->setC1(c1Fr);
-                            for(double c2 = 0.01 ; c2 < 0.08 ; c2+=0.03)//dec //3
+                            for(double c2 = 0.01 ; c2 < 0.05 ; c2+=0.03)//dec //2
                                 //double c2 = 0.04, c2Fr = 0.04;
                             {
                                 double c2Fr = c2;
@@ -265,6 +274,17 @@ void computeRSMethods(Index* ind, Index* indFr)
                                         //int numOfnotShownDoc = 250, numOfnotShownDocFr = 250;
                                     {
                                         int numOfnotShownDocFr = numOfnotShownDoc;
+
+
+                                        myMethod->setNegMu(1000);
+                                        myMethodFr->setNegMu(1000);
+                                        myMethod->setDelta(0.001);
+                                        myMethodFr->setDelta(0.001);
+                                        //myMethod->setLambda1(0.05);
+                                        //myMethodFr->setLambda1(0.05);
+                                        //myMethod->setLambda2(0.05);
+                                        //myMethodFr->setLambda2(0.05);
+
 
                                         myMethod->setThreshold(thresh);
                                         myMethodFr->setThreshold(thresh);
@@ -289,7 +309,7 @@ void computeRSMethods(Index* ind, Index* indFr)
 
 
                                         //myMethod->setThreshold(thresh);
-                                        out<<"threshold: "<<thresh<<" alpha: "<<fbCoef<<" beta: "<<betaTrans<<" gama: "<<1-fbCoef-betaTrans<<" pW: "<<topPos<<" pQ: "<<SelectedWord4Q<<endl ;
+                                        out<<"threshold: "<<thresh<<" negCoef: "<<0.1<<" delta: "<<0.001<<" alpha: "<<fbCoef<<" beta: "<<betaTrans<<" gama: "<<1-fbCoef-betaTrans<<" pW: "<<topPos<<" pQ: "<<SelectedWord4Q<<endl ;
 
                                         IndexedRealVector results;
 
@@ -315,7 +335,8 @@ void computeRSMethods(Index* ind, Index* indFr)
 
                                         while(qs->hasMore() && qsFr->hasMore())
                                         {
-                                            myMethod->collNearestTerm.clear();
+
+                                            myMethod->collNearestTerm.clear();//combSum inas fek konam
                                             myMethodFr->collNearestTerm.clear();
 
                                             myMethod->setThreshold(thresh);
@@ -343,6 +364,16 @@ void computeRSMethods(Index* ind, Index* indFr)
 
 
                                             cout<<"qid: "<<q->id()<<"qidFr: "<<qFr->id()<<endl;
+
+                                            bool newNonRel,newNonRelFr = false;
+#if FANG_NEG
+
+                                            myMethod->clearPrevDistQuery();//fang
+                                            myMethodFr->clearPrevDistQuery();//fang
+
+                                            myMethod->fillQueryTermIndexes((TextQueryRep *)(qr));//FANG fang FANG
+                                            myMethodFr->fillQueryTermIndexes((TextQueryRep *)(qrFr));//FANG fang FANG
+#endif
 
 
                                             ///*******************************************************///
@@ -431,21 +462,38 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                     }
                                                 }
 
+                                                /*
+                                                //test
+                                                set<string>::iterator setit = relDocsFr.begin();
+                                                for(setit ; setit != relDocsFr.end(); ++setit)
+                                                {
+                                                   //double ss = myMethodFr->scoreDoc( *qrFr ,indFr->document(*setit) );
+                                                    double ss = myMethodFr->computeProfDocSim(((TextQueryRep *)(qrFr)) ,indFr->document(*setit), relJudgDocsFr, nonRelJudgDocsFr, isFr, ind, newNonRelFr);
+                                                   cerr<<ss<<" ";
+                                                }
+                                                return;
+                                                //end test*/
 
                                                 double sim = 0, methodThr=0;
+#if RAHIMI
+                                                sim = myMethod->computeProfDocSim(((TextQueryRep *)(qr)) ,docID, relJudgDocs, nonRelJudgDocs,isFr, indFr, newNonRel);
+                                                methodThr = myMethod->getThreshold();
+
+
+#else
                                                 if (!isFr)
                                                 {
                                                     //cerr<<"en: "<<ind->document(docID)<<endl;
-                                                    sim = myMethod->computeProfDocSim(((TextQueryRep *)(qr)) ,docID, relJudgDocs, nonRelJudgDocs, isFr);
+                                                    sim = myMethod->computeProfDocSim(((TextQueryRep *)(qr)) ,docID, relJudgDocs, nonRelJudgDocs, isFr, indFr, newNonRel);
                                                     methodThr = myMethod->getThreshold();
                                                 }
                                                 else
                                                 {
                                                     //cerr<<"fr: "<<indFr->document(docID)<<endl;
-                                                    sim = myMethodFr->computeProfDocSim(((TextQueryRep *)(qrFr)) ,docID, relJudgDocsFr, nonRelJudgDocsFr, isFr);
+                                                    sim = myMethodFr->computeProfDocSim(((TextQueryRep *)(qrFr)) ,docID, relJudgDocsFr, nonRelJudgDocsFr, isFr, ind, newNonRelFr);
                                                     methodThr = myMethodFr->getThreshold();
                                                 }
-
+#endif
                                                 //sleep(1);
 
                                                 if(sim >=  methodThr )
@@ -462,6 +510,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                         hfit = relDocs.find(ind->document(docID) );
                                                         if( hfit != relDocs.end() )//found
                                                         {
+                                                            newNonRel = false;
                                                             relDocs.erase(hfit);
                                                             relJudgDocs.push_back(docID);
                                                             found =true;
@@ -476,6 +525,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                         hfit = relDocsFr.find(indFr->document(docID) );
                                                         if( hfit != relDocsFr.end() )//found
                                                         {
+                                                            newNonRelFr = false;
                                                             relDocsFr.erase(hfit);
                                                             relJudgDocsFr.push_back(docID);
                                                             found =true;
@@ -486,6 +536,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                     {
                                                         if(!isFr)
                                                         {
+                                                            newNonRel = true;
                                                             numberOfShownNonRelDocs++;
                                                             if( numberOfShownNonRelDocs == numOfShownNonRel )
                                                             {
@@ -495,6 +546,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                         }
                                                         else
                                                         {
+                                                            newNonRelFr = true;
                                                             numberOfShownNonRelDocsFr++;
                                                             if( numberOfShownNonRelDocsFr == numOfShownNonRelFr )
                                                             {
@@ -536,6 +588,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                 {
                                                     if(!isFr)
                                                     {
+                                                        newNonRel = false;
                                                         numberOfNotShownDocs++;
 
                                                         if(numberOfNotShownDocs == numOfnotShownDoc)//not show anything after |numOfnotShownDoc| docs! -->dec(thr)
@@ -546,6 +599,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                     }
                                                     else
                                                     {
+                                                        newNonRelFr = false;
                                                         numberOfNotShownDocsFr++;
 
                                                         if(numberOfNotShownDocsFr == numOfnotShownDocFr)//not show anything after |numOfnotShownDoc| docs! -->dec(thr)
@@ -718,7 +772,7 @@ void initJudgDocsVector(Index *ind,vector<int>&rel , vector<int>&nonRel,string q
 void loadDictionary()
 {
     ifstream infile;
-    infile.open ("dictionary_fr2en");
+    infile.open ("dictionary_fr2en_rahimi");
     string line;
 
     //bye , khodi # 0.4 , haha # 0.3 , aba 0.5
@@ -782,7 +836,7 @@ void loadDictionary()
     infile.close();
 
     /******************************************************************/
-    infile.open ("dictionary_en2fr");
+    infile.open ("dictionary_en2fr_rahimi");
 
     while (getline(infile,line))
     {
@@ -855,217 +909,6 @@ void loadDictionary()
         cerr<<endl;
     }*/
 
-#if 0
-    ifstream infile2;
-    infile2.open ("dictionary_en2fr");
-
-    string line2;
-
-    PorterStemmer *stemmer = new PorterStemmer();
-
-    map<string , int> strCountMap;
-
-    while (getline(infile2,line2))
-    {
-        string word;
-        stringstream ss(line2);
-        ss >> word;
-        string stemword = stemmer->stemWord( (char*) word.c_str() );
-        strCountMap[stemword] += 1;
-    }
-    infile2.close();
-
-    /********************************************************/
-    ifstream infile;
-    infile.open ("dictionary_en2fr");
-
-    //map <string,vector<pair<string, double> > >dictionary;
-
-    string line;
-
-    //bye , khodi # 0.4 , haha # 0.3 , aba 0.5
-    //hi , salam goli # 0.9 , chetory # 0.1
-
-
-    //PorterStemmer *stemmer = new PorterStemmer();
-    //KStemmer *kstemmer = new KStemmer();
-
-    while (getline(infile,line))
-    {
-        //getline(infile,line);
-        string word, temp, tr;
-        double prob;
-
-        vector<pair<string, double> > trans;
-        stringstream ss(line);
-
-        ss >> word;
-        ss>> temp;//comma
-
-        while(ss >> temp)
-        {
-            if( temp != "#")
-                tr += temp+" ";
-            else
-            {
-                ss>> prob;
-
-                string aaa = tr.substr(0,tr.size()-1);//remove last space
-                trans.push_back(make_pair<string, double>(aaa, prob));
-                //cerr<<aaa<<" "<<prob<<endl;
-
-
-                tr.clear();
-                ss>>temp;//","
-            }
-
-
-        }
-
-        vector<pair<string, double> >upperProbs(trans.begin(), trans.end());
-        string wordStem = stemmer->stemWord( (char*) word.c_str() );
-
-        if(strCountMap[wordStem] == 1)
-        {
-            dictionary.insert(make_pair< string,vector<pair<string, double> > >(wordStem, upperProbs) );
-
-            /*cerr<<"1. "<<wordStem<<": ";
-            for(int i = 0 ; i < upperProbs.size();i++)
-                cerr<<upperProbs[i].first<<" "<<upperProbs[i].second<<" , ";
-            cerr<<endl;*/
-        }
-        else if(strCountMap[wordStem] > 1)
-        {
-            double cnt = strCountMap[wordStem];
-            //cerr<<cnt<<endl;
-            for(int i = 0 ; i < upperProbs.size(); i++)
-                upperProbs[i].second /= cnt;
-
-            map<string,vector<pair<string, double> > >::iterator dicit = dictionary.find(wordStem);
-            if(dicit == dictionary.end())//not found
-            {
-                dictionary.insert(make_pair< string,vector<pair<string, double> > >(wordStem, upperProbs) );
-
-                /*cerr<<"2. "<<wordStem<<": ";
-                for(int i = 0 ; i < upperProbs.size();i++)
-                    cerr<<upperProbs[i].first<<" "<<upperProbs[i].second<<" , ";
-                cerr<<endl;*/
-            }else//merge trans result
-            {
-
-                map<string, double>transProbMap;
-                map<string, double>::iterator it;
-
-                vector<pair<string, double> > vec = dictionary[wordStem];
-
-                //cerr<<dictionary.size()<<" ";
-                dictionary.erase(dicit);
-                //cerr<<dictionary.size()<<" s: "<<vec.size();
-
-                for(int i = 0 ; i < vec.size() ; i++)
-                {
-                    //cerr<<"1: "<<transProbMap[vec[i].first]<<" "<<vec[i].second<<" "<<vec[i].first<<endl;
-                    transProbMap[vec[i].first] = vec[i].second ;
-                    //cerr<<"2: "<<transProbMap[vec[i].first]<<" "<<vec[i].second<<" "<<vec[i].first<<endl;
-                }
-                for(int i = 0 ; i< upperProbs.size();i++)
-                {
-                    //cerr<<"3: "<<transProbMap[upperProbs[i].first]<<" "<<upperProbs[i].second<<" "<<upperProbs[i].first<<endl;
-                    transProbMap[upperProbs[i].first] += upperProbs[i].second;
-                    //cerr<<"4: "<<transProbMap[upperProbs[i].first]<<" "<<upperProbs[i].second<<" "<<upperProbs[i].first<<endl;
-                }
-
-                vec.clear();
-                for(it = transProbMap.begin(); it != transProbMap.end() ; ++it)
-                {
-                    vec.push_back(make_pair<string,double>(it->first,it->second));
-                }
-                dictionary.insert(make_pair< string,vector<pair<string, double> > >(wordStem, vec) );
-
-
-                /*cerr<<"3. "<<wordStem<<": ";
-                for(int i = 0 ; i < vec.size();i++)
-                    cerr<<vec[i].first<<" "<<vec[i].second<<" , ";
-                cerr<<endl;*/
-            }
-
-        }
-        else
-            cerr<<"DARIM MAGE?!\n\n\n";
-#endif
-
-#if 0
-        map <string,vector<pair<string, double> > >::iterator mapIt;
-        vector<pair<string, double> > vec;
-
-        for(mapIt = dictionary.begin() ; mapIt != dictionary.end(); ++mapIt)
-        {
-            vec = mapIt->second;
-            trans.clear();
-
-            /****************************************/
-            if(vec.size() == 1)
-            {
-                string f1 = mapIt->first, f2 = vec[0].first;
-                std::transform(f1.begin(), f1.end(), f1.begin(), ::tolower);
-                std::transform(f2.begin(), f2.end(), f2.begin(), ::tolower);
-
-                if(f1 != f2)
-                {
-                    string aaaa = stemmer->stemWord( (char*) f1.c_str() );
-                    string bbbb = stemmer->stemWord( (char*) f2.c_str() );
-
-
-                    if(aaaa != bbbb)
-                    {
-                        string wordStem = stemmer->stemWord( (char*) mapIt->first.c_str() );
-                        string transStem = stemmer->stemWord( (char*) f2.c_str() );
-
-                        vec[0].first = transStem;
-                        vec[0].second = 1.0;
-                        dictionary.insert(make_pair< string,vector<pair<string, double> > >(wordStem,vec) );
-
-                        /*cerr<<"1. "<<wordStem<<" : ";
-                            for(int ii = 0 ; ii < trans.size();ii++)
-                            {
-                                cerr<<trans[ii].first<<" "<<trans[ii].second<<" , ";
-                            }
-                            cerr<<endl;*/
-
-                    }//else stem yeki mishe pas hamun bashe
-
-                    //cerr<<" ne "<<word<<" "<<trans[0].first<<endl;
-                }//else yani yekian va hamon stem khodesh ro jaygozari kon
-
-
-            }
-            else//trans size > 1
-            {
-
-                double max = -10,min =10;
-                for(int i = 0 ; i < vec.size();i++)
-                {
-                    if(vec[i].second > max)
-                        max = vec[i].second;
-                    if(vec[i].second < min)
-                        min = vec[i].second;
-                }
-                trans.clear();
-                for(int i = 0 ; i < vec.size();i++)
-                {
-                    double normalizedProb = (vec[i].second - min)/(max - min);
-                    trans.push_back(make_pair<string,double>( vec[i].first, normalizedProb ) );
-
-                    cerr<<vec[i].first<<" "<<normalizedProb<<" "<<min<<" "<<max<<endl;
-                }
-                dictionary.insert(make_pair< string,vector<pair<string, double> > >(wordStem, trans) );
-
-            }
-
-
-        }
-        return;
-#endif
     }
 
 
@@ -1393,7 +1236,7 @@ void loadDictionary()
                 otherIn.open("/home/hosein/wordEmbeddingVector/vectors_new_fr_notStemmed.txt");
             }
         }
-        else //fix me!!!
+        else
         {
             if(DATASET == 0)//infile
             {

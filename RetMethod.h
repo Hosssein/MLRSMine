@@ -31,6 +31,8 @@ using namespace lemur::api;
 
 extern double negGenMUHM;
 extern int RSMethodHM;
+//extern vector<int> queryTermIndexes, queryTermIndexesFr;//for fang(QTE)
+
 
 namespace lemur
 {
@@ -161,6 +163,7 @@ public:
 
         if(whichMethod == 0)//baseline(collection)
         {
+            //cerr<<"1 ";
             double mu= negMu;//ind.docLengthAvg();//negGenMUHM;//2500;
             negQueryGen =0;
 
@@ -169,6 +172,7 @@ public:
             lemur::utility::HashFreqVector hfv(ind,dRep->getID());
             while (hasMore())
             {
+
                 lemur::api::QueryTerm *qt = nextTerm();
                 double pwq = qt->weight()/totalCount();
 
@@ -180,15 +184,18 @@ public:
                 lemur::api::TERMID_T id = qt->id();
                 lemur::api::COUNT_T qtcf = ind.termCount(id);
 
+                //cerr<<"2 "<<ind.term(id)<<" "<<dRep->getID();
+
                 double pwc = (double)qtcf/(double)tc;
                 double pwdbar = (delta/(delta*ind.termCountUnique()+mu))+((mu*pwc)/(delta*ind.termCountUnique()+mu));
-                negQueryGen+= pwq *log(pwq/pwdbar);
+                negQueryGen+= pwq *log(pwq/pwdbar);//kl(q,d_bar)
 
                 delete qt;
             }
             return negQueryGen;
         }else if (whichMethod == 1)// using DN instead of collection
         {
+            //cerr<<"3 ";
             if (newNonRel)
                 DNsize += ind.docLength(JudgDocs[JudgDocs.size()-1]);
 
@@ -202,6 +209,7 @@ public:
             startIteration();
             while (hasMore())
             {
+                //cerr<<"4 ";
                 lemur::api::QueryTerm *qt = nextTerm();
                 double pwq = qt->weight()/totalCount();
                 if (newNonRel)
@@ -716,7 +724,7 @@ public:
                                vector<int> relJudglDoc , vector<int> nonReljudgDoc, Index *currInd, Index *otherInd, vector<int>relJudgDocFr, bool isFr, RetMethod *otherMethod);
     virtual void updateThreshold(lemur::api::TextQueryRep &origRep,
                                  vector<int> relJudglDoc , vector<int> nonReljudgDoc , int mode);
-    virtual float computeProfDocSim(lemur::api::TextQueryRep *origRep, int docID , vector<int>relDocs , vector<int>nonRelDocs , bool isFr);
+    virtual float computeProfDocSim(lemur::api::TextQueryRep *origRep, int docID , vector<int>relDocs , vector<int>nonRelDocs , bool isFr, Index *, bool newNonRel);
 
 
     virtual float cosineSim(vector<double> aa, vector<double> bb);
@@ -725,7 +733,22 @@ public:
 
     virtual vector<double> extractKeyWord(int newDocId);
 
+    void fillQueryTermIndexes(TextQueryRep *textQR)
+    {
+        textQR->startIteration();
+        while(textQR->hasMore())
+        {
+            QueryTerm *qTerm =textQR->nextTerm();
+            if(qTerm->id()==0)
+            {
+                cerr<<"**********"<<endl;
+                continue;
+            }
+            queryTermIndexes.push_back(qTerm->id());
 
+            delete qTerm;
+        }
+    }
 
 
     double fangScore( DocIDSet &fbDocs, int docID, bool newNonRel)
@@ -814,6 +837,12 @@ public:
                                            docProbMass,
                                            docParam.DirPrior,
                                            docParam.smthStrategy);
+
+
+        for(int k = 0 ; k < queryTermIndexes.size() ;k++)
+            prev_distQuery[queryTermIndexes[k]] = 0;
+        //cerr<<queryTermIndexes.size()<<endl;
+
 
         // for (int i=1; i<=numTerms; i++) {
         //   if (distQuery[i] > 0) {
@@ -933,6 +962,7 @@ public:
 protected:
     //double *prev_distQuery;
     map <int,double>prev_distQuery;
+    vector<int> queryTermIndexes;
 
     double NegMu;
     double delta;
