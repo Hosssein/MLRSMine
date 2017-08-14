@@ -210,13 +210,13 @@ void computeRSMethods(Index* ind, Index* indFr)
     else if (DATASET == 1)
         outFilename = outputFileNameHM+"_ohsu_";
 
-#define COMPAVG 0
+#define COMPAVG 1
 
 #define RAHIMI  0
 #define FANG_NEG 1
 
     isRellNearest = false;//compute nearest from rell//used in comb..
-    string methodName = "_NegColl_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
+    string methodName = "rahimiDic_NegColl_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
     //string methodName = "noprof";//"logistic_we_tp15_exp_a:0.5_b:0.5_";
     outFilename += methodName;
     //outFilename += "_lambda{zoj}_topPos:{10-50(20)}";//_#perQuery:{10-25(15)}";//#perQuery:{10-25(15)}//_alpha[0.1-1(0.4)]//#fb{50}_//#perQuery:{10-25(15)}////_//#topPerQueryWord:{(50,100)}////c(50,100)_//// #topPosW:30-30(0)
@@ -236,13 +236,13 @@ void computeRSMethods(Index* ind, Index* indFr)
         {
             double fbCoef =0.2;//alpha
 
-            //for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.1)
+            for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.1)
                 //for( double topPos = 15; topPos <= 15 ; topPos += 10 )//1//15 khube //n(50,100) for each query term//c in RM1
                 {
 
                     for(double SelectedWord4Q = 10; SelectedWord4Q <= 30 ; SelectedWord4Q += 10)//3 //v(10,25) for each query(whole)
                     {
-                        double bb =-1;
+                        //double bb =-1;
                         //tedad feedback tuye har 2 yeksane
                         double topPos = 15;//eachqueryTerm//n//c in rm1
                         //double SelectedWord4Q = 50;//fbTermCount
@@ -462,8 +462,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                     }
                                                 }
 
-                                                /*
-                                                //test
+#if 0 //test
                                                 set<string>::iterator setit = relDocsFr.begin();
                                                 for(setit ; setit != relDocsFr.end(); ++setit)
                                                 {
@@ -472,7 +471,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                    cerr<<ss<<" ";
                                                 }
                                                 return;
-                                                //end test*/
+#endif //end test
 
                                                 double sim = 0, methodThr=0;
 #if RAHIMI
@@ -537,6 +536,8 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                         if(!isFr)
                                                         {
                                                             newNonRel = true;
+                                                            nonRelJudgDocs.push_back(docID);
+
                                                             numberOfShownNonRelDocs++;
                                                             if( numberOfShownNonRelDocs == numOfShownNonRel )
                                                             {
@@ -547,6 +548,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                                                         else
                                                         {
                                                             newNonRelFr = true;
+                                                            nonRelJudgDocsFr.push_back(docID);
                                                             numberOfShownNonRelDocsFr++;
                                                             if( numberOfShownNonRelDocsFr == numOfShownNonRelFr )
                                                             {

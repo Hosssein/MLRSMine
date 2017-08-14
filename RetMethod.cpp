@@ -740,15 +740,15 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
 #define BL 0
     /**mine methods****/
 
-#define TRANS 0
+#define TRANS 1
 #define MIX_TRANS 0 //0->logistic ,1 -> mixture
 #define RM3_TRANS 0
 #define LOGISTIC_TRANS 0
-#define LOGISTIC_WE_TRANS 0
+#define LOGISTIC_WE_TRANS 1
 
     //sameLang
 #define LOGLOGISTIC 0
-#define LOGLOGISTICWE 1
+#define LOGLOGISTICWE 0
 #define COSREL 0
     /**other methods***/
 #define CENTROID 0
