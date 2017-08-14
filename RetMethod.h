@@ -195,7 +195,7 @@ public:
             return negQueryGen;
         }else if (whichMethod == 1)// using DN instead of collection
         {
-            //cerr<<JudgDocs.size()<<" "<<newNonRel<<"\n ";
+            //cerr<<"a"<<JudgDocs.size()<<"b"<<newNonRel<<"c\n ";
             if (newNonRel)
                 DNsize += ind.docLength(JudgDocs[JudgDocs.size()-1]);
 

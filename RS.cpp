@@ -216,7 +216,7 @@ void computeRSMethods(Index* ind, Index* indFr)
 #define FANG_NEG 1
 
     isRellNearest = false;//compute nearest from rell//used in comb..
-    string methodName = "rahimiDic_NegColl_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
+    string methodName = "rahimiDic_NegNoneRell_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
     //string methodName = "noprof";//"logistic_we_tp15_exp_a:0.5_b:0.5_";
     outFilename += methodName;
     //outFilename += "_lambda{zoj}_topPos:{10-50(20)}";//_#perQuery:{10-25(15)}";//#perQuery:{10-25(15)}//_alpha[0.1-1(0.4)]//#fb{50}_//#perQuery:{10-25(15)}////_//#topPerQueryWord:{(50,100)}////c(50,100)_//// #topPosW:30-30(0)
@@ -365,7 +365,7 @@ void computeRSMethods(Index* ind, Index* indFr)
 
                                             cout<<"qid: "<<q->id()<<"qidFr: "<<qFr->id()<<endl;
 
-                                            bool newNonRel,newNonRelFr = false;
+                                            bool newNonRel = false,newNonRelFr = false;
 #if FANG_NEG
 
                                             myMethod->clearPrevDistQuery();//fang
