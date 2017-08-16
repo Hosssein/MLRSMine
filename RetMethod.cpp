@@ -748,7 +748,7 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
 
     //sameLang
 #define LOGLOGISTIC 0
-#define LOGLOGISTICWE 0
+#define LOGLOGISTICWE 1
 #define COSREL 0
     /**other methods***/
 #define CENTROID 0
@@ -2152,13 +2152,15 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
             //cerr<<ind.term(qTerm->id())<<" "<<qTerm->weight()<<endl;
             pq = qTerm->weight()/queryWeight;
 
-            //inv->en2fr
-            fit = invDictionaryEn2Fr.find(ind.term(qTerm->id()));
-            if(fit != invDictionaryEn2Fr.end())//found
+
+            fit = invDictionaryFr2En.find(ind.term(qTerm->id()));//notice
+            if(fit != invDictionaryFr2En.end())//found
             {
+                //cerr<<"\nfound!"<<ind.term(qTerm->id())<<":\n";
                 double cp = 0;
                 for(int i = 0; i < fit->second.size(); i++)
                 {
+                    //cerr<<fit->second[i].first<<" , ";
                     int tf=0;
                     hfv.find( indFr->term(fit->second[i].first) ,tf);
                     if(tf)
@@ -2172,6 +2174,7 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
             }
             else
             {
+                //cerr<<"\nnot!"<<ind.term(qTerm->id())<<"\n";
                 //cerr<< ind.term(qTerm->id())<<"#";
                 double cp = 0;
                 int tf=0;
@@ -2179,7 +2182,7 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
                 if( tf > 0 )
                 {
                     cp = tf*1.0;
-                    //cerr<<"tf>0 "<<tf<<" "<<ind.term(qTerm->id() )<<" "<<indFr->term( ind.term(qTerm->id() ) );
+                    //cerr<<"tf>0 "<<tf<<" "<<ind.term(qTerm->id() )<<" "<<indFr->term( ind.term(qTerm->id() ) )<<"\n";
                 }
                 //else
                 //    cerr<<tf<<"tf ";
@@ -2191,7 +2194,7 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
             double cntEn = ind.termCount(qTerm->id());
 
             double cntFr = 0;
-            if(fit != invDictionaryEn2Fr.end())//found
+            if(fit != invDictionaryFr2En.end())//found
             {
                 for(int i = 0 ; i < fit->second.size() ; i++)
                 {
