@@ -748,7 +748,7 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
 
     //sameLang
 #define LOGLOGISTIC 0
-#define LOGLOGISTICWE 1
+#define LOGLOGISTICWE 0
 #define COSREL 0
     /**other methods***/
 #define CENTROID 0
