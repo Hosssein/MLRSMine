@@ -214,9 +214,9 @@ void computeRSMethods(Index* ind, Index* indFr)
 #define RAHIMI  0
 #define FANG_NEG 1
     isRellNearest = false;//compute nearest from rell//used in comb..
-    string methodName = "_rahimidic_Negcoll_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
+    //string methodName = "_0.001_rahimidic_Negcoll_0.1_LLWE_alpha:0.2"; //RM1(c=n=100)
     //string methodName = "_hosseindic_Rahimi_LLWE_alpha:0.2"; //RM1(c=n=100)
-    //string methodName = "noprof";//"logistic_we_tp15_exp_a:0.5_b:0.5_";
+    string methodName = "_hosseinDic_FANG:0.1_LLWE_alpha:0.2";//"logistic_we_tp15_exp_a:0.5_b:0.5_";
     outFilename += methodName;
     //outFilename += "_lambda{zoj}_topPos:{10-50(20)}";//_#perQuery:{10-25(15)}";//#perQuery:{10-25(15)}//_alpha[0.1-1(0.4)]//#fb{50}_//#perQuery:{10-25(15)}////_//#topPerQueryWord:{(50,100)}////c(50,100)_//// #topPosW:30-30(0)
 
@@ -233,9 +233,9 @@ void computeRSMethods(Index* ind, Index* indFr)
     for (double thresh = start_thresh ; thresh<=end_thresh ; thresh += intervalThresholdHM)
         //for(double fbCoef = 0.1; fbCoef <=0.91 ; fbCoef+=0.2)//lambda //5
     {
-        double fbCoef =0.2;//alpha
+        double fbCoef = 0.2;//alpha
 
-        for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.1)
+        for(double bb = 0.0 ; bb <= 1-fbCoef; bb += 0.2)
         //for( double topPos = 15; topPos <= 15 ; topPos += 10 )//1//15 khube //n(50,100) for each query term//c in RM1
         {
 
@@ -244,7 +244,7 @@ void computeRSMethods(Index* ind, Index* indFr)
                 //double bb =-1;
                 //tedad feedback tuye har 2 yeksane
                 double topPos = 15;//eachqueryTerm//n//c in rm1
-                //double SelectedWord4Q = 50;//fbTermCount
+                //double SelectedWord4Q = -1;//fbTermCount
                 alphaTrans = fbCoef;
                 betaTrans = bb;
 
@@ -263,7 +263,8 @@ void computeRSMethods(Index* ind, Index* indFr)
                         //myMethod->setThreshold(init_thr);
                         myMethod->setC2(c2);
                         myMethodFr->setC2(c2Fr);
-                        for(int numOfShownNonRel = 2; numOfShownNonRel< 6; numOfShownNonRel+=3 )//2
+                        //for(int numOfShownNonRel = 2; numOfShownNonRel< 6; numOfShownNonRel+=3 )//2
+                        int numOfShownNonRel = 2;
                             //int numOfShownNonRel = 1, numOfShownNonRelFr = 1;
                         {
                             int numOfShownNonRelFr = numOfShownNonRel;
@@ -804,7 +805,7 @@ void initJudgDocsVector(Index *ind,vector<int>&rel , vector<int>&nonRel,string q
 void loadDictionary()
 {
     ifstream infile;
-    infile.open ("dictionary_fr2en_rahimi");
+    infile.open ("dictionary_fr2en");
     string line;
 
     //bye , khodi # 0.4 , haha # 0.3 , aba 0.5
@@ -868,7 +869,7 @@ void loadDictionary()
     infile.close();
 
     /******************************************************************/
-    infile.open ("dictionary_en2fr_rahimi");
+    infile.open ("dictionary_en2fr");
 
     while (getline(infile,line))
     {

@@ -737,6 +737,7 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
                                                 Index *currInd, Index *otherInd, vector<int> relJudgDocFr,
                                                 bool isFr, RetMethod *otherMethod)
 {
+
 #define BL 0
     /**mine methods****/
 
@@ -867,6 +868,8 @@ void lemur::retrieval::RetMethod::updateProfile(lemur::api::TextQueryRep &origRe
     delete fblm;
     delete[] distQ;
     delete[] distQFr;
+
+    return;
 
 #endif
 
