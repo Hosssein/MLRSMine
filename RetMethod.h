@@ -775,10 +775,10 @@ public:
             noisePr = qryParam.fbMixtureNoise;
 
             int itNum = qryParam.emIterations;
+            prev_distQuery.clear();//areeeee??? fix me!
             do {
                 // re-estimate & compute likelihood
                 double ll = 0;
-                prev_distQuery.clear();
                 for (i=1; i<=numTerms;i++) {
 
                     distQuery[i] = distQueryEst[i]/distQueryNorm;
@@ -786,6 +786,7 @@ public:
                     // cerr << "dist: "<< distQuery[i] << endl;
                     if(distQuery[i]>0)
                         prev_distQuery[i] = distQuery[i];
+
                     distQueryEst[i] =0;
                 }
 
@@ -839,16 +840,18 @@ public:
                                            docParam.smthStrategy);
 
 
-        for(int k = 0 ; k < queryTermIndexes.size() ;k++)
-            prev_distQuery[queryTermIndexes[k]] = 0;
+        //for(int k = 0 ; k < queryTermIndexes.size() ;k++)
+          //  prev_distQuery[queryTermIndexes[k]] = 0;
         //cerr<<queryTermIndexes.size()<<endl;
 
 
         // for (int i=1; i<=numTerms; i++) {
         //   if (distQuery[i] > 0) {
+        //cerr<<"ps: "<<prev_distQuery.size()<<" ";
         for(map<int,double>::iterator it = prev_distQuery.begin(); it!= prev_distQuery.end() ; it++){
             int tf=0 ;
             hfv.find(it->first,tf);
+            //cerr<<"1:"<<it->second<<"2:"<<dm->seenProb(tf, it->first)<<"3:"<<log (it->second/dm->seenProb(tf, it->first));
             fang_score+= it->second * log (it->second/dm->seenProb(tf, it->first));
         }
         //lmCounter.incCount(i, distQuery[i]);

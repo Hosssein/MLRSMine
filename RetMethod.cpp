@@ -2039,16 +2039,23 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
     }
     else if (RSMethodHM == 4)//fang
     {
-        IndexedRealVector nonRel;
-        for (int i =0 ; i<nonReljudgDoc.size() ; i++)
-            nonRel.PushValue(nonReljudgDoc[i],0);
+        if(nonReljudgDoc.size() == 0)
+            negQueryGenerationScore = 0;
+        else
+        {
+            IndexedRealVector nonRel;
+            for (int i =0 ; i<nonReljudgDoc.size() ; i++)
+                nonRel.PushValue(nonReljudgDoc[i],0);
 
-        PseudoFBDocs  *nonRelDocs;
-        nonRelDocs= new PseudoFBDocs(nonRel,nonRel.size(),true);
+            PseudoFBDocs  *nonRelDocs;
+            nonRelDocs= new PseudoFBDocs(nonRel,nonRel.size(),true);
 
-        negQueryGenerationScore = fangScore(*nonRelDocs,docID,newNonRel);
+            //if(nonRel.size()> 1)
+            //    cerr<<"newNonRel: "<<newNonRel<<" nonRelSize: "<<nonRel.size()<<" ";
+            negQueryGenerationScore = fangScore(*nonRelDocs,docID,newNonRel);
 
-        delete nonRelDocs;
+            delete nonRelDocs;
+        }
     }
     else if (RSMethodHM == 2 || RSMethodHM == 3)//RecSys negKLQTE(2) and negKL(3)
     {
@@ -2058,7 +2065,7 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
     //double fangScoreTmp = fangScore(*relDocs,docID,newRel);//considering positive feedback
     //negQueryGenerationScore -= fangScore(*relDocs,docID,newRel);//considering positive feedback
 
-    double scoreDoc = lemur::api::TextQueryRetMethod::scoreDoc(*textQR,docID); // -KL(q,d)
+    double sc = lemur::api::TextQueryRetMethod::scoreDoc(*textQR,docID); // -KL(q,d)
 
     //negQueryGenerationScore -= fangScoreTmp;
 
@@ -2067,9 +2074,11 @@ float lemur::retrieval::RetMethod::computeProfDocSim(lemur::api::TextQueryRep *t
     //delete relDocs;
 
     //return (negQueryGenerationScore + adjustedScore);
-    //cerr<<scoreDoc <<" "<<negQueryGenerationScore<<"\n";
+    //cerr<<"kl:"<<sc <<" neg: "<<negQueryGenerationScore<<" whole: "<<0.1*negQueryGenerationScore + sc<<"\n";
 
-    return (0.1*negQueryGenerationScore + scoreDoc);
+
+
+    return (0.1*negQueryGenerationScore + sc);
 
 
 #endif
@@ -2625,7 +2634,7 @@ void lemur::retrieval::RetMethod::computeWELogisticDistQuery(vector<int>relJudgD
                 }
                 //else
                 //{
-                    //cerr<<" "<<ind.term(tempit->first);//<<" , "<<tempit->first<<" "<<isFr<<" "<<ind.document(relJudgDoc[i]);
+                //cerr<<" "<<ind.term(tempit->first);//<<" , "<<tempit->first<<" "<<isFr<<" "<<ind.document(relJudgDoc[i]);
                 //}
 
             }
